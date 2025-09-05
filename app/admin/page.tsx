@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+
 
 // Add lat/lng for each incident for map markers
 interface Incident {
@@ -14,8 +14,6 @@ interface Incident {
   priority: string;
   severity: "Critical" | "Medium" | "Low";
   responder: string | null;
-  lat: number;
-  lng: number;
 }
 
 const mockIncidents: Incident[] = [
@@ -26,9 +24,7 @@ const mockIncidents: Incident[] = [
     status: "Assigned",
     priority: "High",
     severity: "Critical",
-    responder: "Team Alpha",
-    lat: 28.6139,
-    lng: 77.209,
+    responder: "Team Alpha"
   },
   {
     id: 2,
@@ -37,9 +33,7 @@ const mockIncidents: Incident[] = [
     status: "Pending",
     priority: "Medium",
     severity: "Medium",
-    responder: null,
-    lat: 28.62,
-    lng: 77.21,
+    responder: null
   },
   {
     id: 3,
@@ -48,9 +42,7 @@ const mockIncidents: Incident[] = [
     status: "Resolved",
     priority: "Low",
     severity: "Low",
-    responder: "Team Beta",
-    lat: 28.63,
-    lng: 77.2,
+    responder: "Team Beta"
   },
 ];
 
@@ -68,82 +60,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Dynamically import MapContainer and related components to avoid SSR issues
-  const MapWithMarkers = dynamic(
-    async () => {
-      const { MapContainer, TileLayer, Marker, Popup, useMap } = await import("react-leaflet");
-      const L = (await import("leaflet")).default;
-
-      // Custom icon based on severity
-      function getIcon(severity: "Critical" | "Medium" | "Low") {
-        let color = "#3E5F44";
-        if (severity === "Critical") color = "#d32f2f";
-        else if (severity === "Medium") color = "#fbc02d";
-        else if (severity === "Low") color = "#388e3c";
-        return new L.DivIcon({
-          className: "custom-marker",
-          html: `<div style='background:${color};border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);'><span style='color:#fff;font-size:13px;font-weight:bold;'>!</span></div>`,
-        });
-      }
-
-      type Incident = {
-        id: number;
-        type: string;
-        location: string;
-        status: string;
-        priority: string;
-        severity: "Critical" | "Medium" | "Low";
-        responder: string | null;
-        lat: number;
-        lng: number;
-      };
-
-      // Fit map to markers
-      function FitBounds({ incidents }: { incidents: Incident[] }) {
-        const map = useMap();
-        if (incidents.length > 0) {
-          const bounds = L.latLngBounds(incidents.map((i: Incident) => [i.lat, i.lng]));
-          map.fitBounds(bounds, { padding: [40, 40] });
-        }
-        return null;
-      }
-
-      return function MapComponent() {
-        return (
-          <MapContainer
-            style={{ width: "100%", height: "16rem", borderRadius: "1rem" }}
-            center={[28.6139, 77.209]}
-            zoom={13}
-            scrollWheelZoom={true}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {mockIncidents.map((incident) => (
-              <Marker
-                key={incident.id}
-                position={[incident.lat, incident.lng]}
-                icon={getIcon(incident.severity as "Critical" | "Medium" | "Low")}
-              >
-                <Popup>
-                  <b>{incident.type}</b>
-                  <br />
-                  {incident.location}
-                  <br />
-                  Severity: {incident.severity}
-                  <br />
-                  Priority: {incident.priority}
-                </Popup>
-              </Marker>
-            ))}
-            <FitBounds incidents={mockIncidents} />
-          </MapContainer>
-        );
-      };
-    },
-    { ssr: false }
-  );
+  // Map removed
 
   return (
     <>
@@ -245,12 +162,7 @@ export default function AdminDashboard() {
         a.view-assign-link:hover {
           color: #5E936C;
         }
-        /* Leaflet container fixes */
-        .leaflet-container {
-          border-radius: 1rem !important;
-          box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-          border: none !important;
-        }
+
         @keyframes fadeIn {
           from {opacity: 0;}
           to {opacity: 1;}
@@ -274,11 +186,8 @@ export default function AdminDashboard() {
       `}</style>
 
       <main className="animate-fade-in">
-        <h2 className="animate-fade-in-up">Admin Live Response Map</h2>
+        <h2 className="animate-fade-in-up">Admin Dashboard</h2>
         <div className="container">
-          <div className="card animate-fade-in-up" style={{ padding: "1rem", marginBottom: "2rem" }}>
-            <MapWithMarkers />
-          </div>
 
           <section>
             <h3 className="animate-fade-in-up">Live Incidents</h3>
