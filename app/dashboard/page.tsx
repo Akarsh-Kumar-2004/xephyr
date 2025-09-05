@@ -1,7 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const mockIncidents = [
+interface Incident {
+  id: number | string;
+  type: string;
+  location: string;
+  status: string;
+  priority?: string;
+  description?: string;
+  responder?: string | null;
+}
+
+const mockIncidents: Incident[] = [
   {
     id: 1,
     type: "Flood",
@@ -32,7 +42,32 @@ const mockIncidents = [
 ];
 
 export default function CitizenDashboard() {
-  const [incidents] = useState(mockIncidents);
+  const [incidents, setIncidents] = useState<Incident[]>(mockIncidents);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/incidents');
+        if (!res.ok) throw new Error(`Failed to load incidents (${res.status})`);
+        const json = await res.json();
+        const fetched: Incident[] = json.incidents ?? [];
+        if (mounted) setIncidents(fetched);
+      } catch (err: unknown) {
+        console.error('Error loading incidents:', err);
+        const message = err instanceof Error ? err.message : String(err);
+        if (mounted) setError(message || 'Failed to load incidents');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   // Helper to get badge color classes based on status
   const getStatusBadgeClass = (status: string) => {
@@ -194,7 +229,11 @@ export default function CitizenDashboard() {
       <main className="animate-fade-in">
         <h2 className="animate-fade-in-up">My Reported Incidents</h2>
         <div className="container">
-          {incidents.length === 0 ? (
+          {loading ? (
+            <div className="no-incidents animate-fade-in-up">Loading incidents…</div>
+          ) : error ? (
+            <div className="no-incidents animate-fade-in-up">Error: {error}</div>
+          ) : incidents.length === 0 ? (
             <div className="no-incidents animate-fade-in-up">
               No incidents reported yet.
             </div>
@@ -211,8 +250,8 @@ export default function CitizenDashboard() {
                   </span>
                 </header>
                 <section className="card-content">
-                  <span className={`priority-text ${getPriorityTextClass(incident.priority)}`}>
-                    Priority: {incident.priority}
+                  <span className={`priority-text ${getPriorityTextClass(incident.priority ?? '')}`}>
+                    Priority: {incident.priority ?? 'N/A'}
                   </span>
                   <p className="description-text">{incident.description}</p>
                   {incident.responder && (
