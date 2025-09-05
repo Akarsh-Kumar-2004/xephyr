@@ -6,7 +6,19 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 
 // Add lat/lng for each incident for map markers
-const mockIncidents = [
+interface Incident {
+  id: number;
+  type: string;
+  location: string;
+  status: string;
+  priority: string;
+  severity: "Critical" | "Medium" | "Low";
+  responder: string | null;
+  lat: number;
+  lng: number;
+}
+
+const mockIncidents: Incident[] = [
   {
     id: 1,
     type: "Flood",
@@ -125,7 +137,7 @@ export default function AdminDashboard() {
                 </Popup>
               </Marker>
             ))}
-            <FitBounds incidents={mockIncidents as any} />
+            <FitBounds incidents={mockIncidents} />
           </MapContainer>
         );
       };
@@ -264,7 +276,9 @@ export default function AdminDashboard() {
       <main className="animate-fade-in">
         <h2 className="animate-fade-in-up">Admin Live Response Map</h2>
         <div className="container">
-          {/* Map temporarily removed to debug border issue */}
+          <div className="card animate-fade-in-up" style={{ padding: "1rem", marginBottom: "2rem" }}>
+            <MapWithMarkers />
+          </div>
 
           <section>
             <h3 className="animate-fade-in-up">Live Incidents</h3>

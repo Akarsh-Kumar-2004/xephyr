@@ -13,7 +13,7 @@ interface Incident {
 }
 
 // Mock database
-let incidents: Incident[] = [];
+const incidents: Incident[] = [];
 
 export async function POST(req: Request) {
   try {
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     incidents.push(incident);
 
     return NextResponse.json({ success: true, incident });
-  } catch (error) {
+  } catch (err) {
     return NextResponse.json(
       { success: false, error: 'Failed to create incident' },
       { status: 500 }
