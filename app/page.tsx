@@ -1,3 +1,4 @@
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 
 export default function Home() {
@@ -32,7 +33,6 @@ export default function Home() {
           width: 100%;
           max-width: 320px;
           padding: 1rem 1.5rem;
-          margin-bottom: 1.5rem;
           font-size: 1.125rem;
           font-weight: 600;
           border-radius: 0.5rem;
@@ -80,10 +80,6 @@ export default function Home() {
           transform: scale(1.05);
         }
 
-        .btn:not(:last-child) {
-          margin-bottom: 1.5rem;
-        }
-
         .btn-container {
           width: 100%;
           max-width: 320px;
@@ -107,20 +103,39 @@ export default function Home() {
 
       <main>
         <h1>Disaster Response Command Center</h1>
-        <div className="btn-container">
-          <Link href="/report" className="btn btn-primary" tabIndex={0}>
-            Report an Incident
-          </Link>
-          <Link href="/dashboard" className="btn btn-secondary" tabIndex={0}>
-            Citizen Dashboard
-          </Link>
-          <Link href="/responder" className="btn btn-accent" tabIndex={0}>
-            Responder Dashboard
-          </Link>
-          <Link href="/admin" className="btn btn-warning" tabIndex={0}>
-            Admin Dashboard
-          </Link>
-        </div>
+
+        {/* When signed out → show login/signup */}
+        <SignedOut>
+          <div className="btn-container">
+            <Link href="/sign-in" className="btn btn-primary" tabIndex={0}>
+              Login
+            </Link>
+            <Link href="/sign-up" className="btn btn-secondary" tabIndex={0}>
+              Sign Up
+            </Link>
+          </div>
+        </SignedOut>
+
+        {/* When signed in → show dashboards + user menu */}
+        <SignedIn>
+          <div className="btn-container">
+            <Link href="/report" className="btn btn-primary" tabIndex={0}>
+              Report an Incident
+            </Link>
+            <Link href="/dashboard" className="btn btn-secondary" tabIndex={0}>
+              Citizen Dashboard
+            </Link>
+            <Link href="/responder" className="btn btn-accent" tabIndex={0}>
+              Responder Dashboard
+            </Link>
+            <Link href="/admin" className="btn btn-warning" tabIndex={0}>
+              Admin Dashboard
+            </Link>
+            <div style={{ marginTop: "1rem", textAlign: "center" }}>
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </div>
+        </SignedIn>
       </main>
     </>
   );

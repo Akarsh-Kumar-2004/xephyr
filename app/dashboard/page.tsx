@@ -1,17 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useUser, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
-interface Incident {
-  id: number | string;
-  type: string;
-  location: string;
-  status: string;
-  priority?: string;
-  description?: string;
-  responder?: string | null;
-}
-
-const mockIncidents: Incident[] = [
+const mockIncidents = [
   {
     id: 1,
     type: "Flood",
@@ -42,43 +33,19 @@ const mockIncidents: Incident[] = [
 ];
 
 export default function CitizenDashboard() {
-  const [incidents, setIncidents] = useState<Incident[]>(mockIncidents);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/incidents');
-        if (!res.ok) throw new Error(`Failed to load incidents (${res.status})`);
-        const json = await res.json();
-        const fetched: Incident[] = json.incidents ?? [];
-        if (mounted) setIncidents(fetched);
-      } catch (err: unknown) {
-        console.error('Error loading incidents:', err);
-        const message = err instanceof Error ? err.message : String(err);
-        if (mounted) setError(message || 'Failed to load incidents');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    load();
-    return () => { mounted = false; };
-  }, []);
+  const [incidents] = useState(mockIncidents);
+  const { user } = useUser();
 
   // Helper to get badge color classes based on status
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Resolved":
-        return "bg-[#93DA97] text-[#3E5F44]"; // light green bg, dark text
+        return "bg-[#93DA97] text-[#3E5F44]";
       case "Assigned":
-        return "bg-[#5E936C] text-[#E8FFD7]"; // medium green bg, light text
+        return "bg-[#5E936C] text-[#E8FFD7]";
       case "Pending":
       default:
-        return "bg-[#3E5F44] text-[#E8FFD7]"; // dark green bg, light text
+        return "bg-[#3E5F44] text-[#E8FFD7]";
     }
   };
 
@@ -86,12 +53,12 @@ export default function CitizenDashboard() {
   const getPriorityTextClass = (priority: string) => {
     switch (priority) {
       case "High":
-        return "text-[#3E5F44] font-bold"; // dark green bold
+        return "text-[#3E5F44] font-bold";
       case "Medium":
-        return "text-[#5E936C] font-semibold"; // medium green
+        return "text-[#5E936C] font-semibold";
       case "Low":
       default:
-        return "text-[#93DA97]"; // light green
+        return "text-[#93DA97]";
     }
   };
 
@@ -227,46 +194,57 @@ export default function CitizenDashboard() {
       `}</style>
 
       <main className="animate-fade-in">
-        <h2 className="animate-fade-in-up">My Reported Incidents</h2>
-        <div className="container">
-          {loading ? (
-            <div className="no-incidents animate-fade-in-up">Loading incidents…</div>
-          ) : error ? (
-            <div className="no-incidents animate-fade-in-up">Error: {error}</div>
-          ) : incidents.length === 0 ? (
-            <div className="no-incidents animate-fade-in-up">
-              No incidents reported yet.
-            </div>
-          ) : (
-            incidents.map((incident) => (
-              <article key={incident.id} className="card animate-fade-in-up">
-                <header className="card-header">
-                  <div>
-                    <h3 className="card-title">{incident.type}</h3>
-                    <p className="location-text">{incident.location}</p>
-                  </div>
-                  <span className={`badge ${getStatusBadgeClass(incident.status)}`}>
-                    {incident.status}
-                  </span>
-                </header>
-                <section className="card-content">
-                  <span className={`priority-text ${getPriorityTextClass(incident.priority ?? '')}`}>
-                    Priority: {incident.priority ?? 'N/A'}
-                  </span>
-                  <p className="description-text">{incident.description}</p>
-                  {incident.responder && (
-                    <span className="responder-text">Responder: {incident.responder}</span>
-                  )}
-                  {incident.status === "Pending" && (
-                    <button className="btn-cancel" type="button" aria-label="Cancel Report">
-                      Cancel Report
-                    </button>
-                  )}
-                </section>
-              </article>
-            ))
-          )}
-        </div>
+        {/* If not logged in → ask to sign in */}
+        <SignedOut>
+          <div className="no-incidents animate-fade-in-up">
+            <p>You must be logged in to view your incidents.</p>
+            <SignInButton mode="redirect">
+              <button className="btn-cancel">Sign In</button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+
+        {/* If logged in → show dashboard */}
+        <SignedIn>
+          <h2 className="animate-fade-in-up">
+            {user ? `${user.firstName || "Citizen"}'s Reported Incidents` : "My Reported Incidents"}
+          </h2>
+          <div className="container">
+            {incidents.length === 0 ? (
+              <div className="no-incidents animate-fade-in-up">
+                No incidents reported yet.
+              </div>
+            ) : (
+              incidents.map((incident) => (
+                <article key={incident.id} className="card animate-fade-in-up">
+                  <header className="card-header">
+                    <div>
+                      <h3 className="card-title">{incident.type}</h3>
+                      <p className="location-text">{incident.location}</p>
+                    </div>
+                    <span className={`badge ${getStatusBadgeClass(incident.status)}`}>
+                      {incident.status}
+                    </span>
+                  </header>
+                  <section className="card-content">
+                    <span className={`priority-text ${getPriorityTextClass(incident.priority)}`}>
+                      Priority: {incident.priority}
+                    </span>
+                    <p className="description-text">{incident.description}</p>
+                    {incident.responder && (
+                      <span className="responder-text">Responder: {incident.responder}</span>
+                    )}
+                    {incident.status === "Pending" && (
+                      <button className="btn-cancel" type="button" aria-label="Cancel Report">
+                        Cancel Report
+                      </button>
+                    )}
+                  </section>
+                </article>
+              ))
+            )}
+          </div>
+        </SignedIn>
       </main>
     </>
   );
