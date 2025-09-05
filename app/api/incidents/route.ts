@@ -1,7 +1,19 @@
 import { NextResponse } from 'next/server';
 
+interface Incident {
+  id: number;
+  type: string;
+  location: string;
+  description: string;
+  media?: string;
+  createdAt: string;
+  status: 'Pending' | 'In Progress' | 'Resolved';
+  severity: 'Critical' | 'Medium' | 'Low';
+  responder: string | null;
+}
+
 // Mock database
-let incidents: any[] = [];
+let incidents: Incident[] = [];
 
 export async function POST(req: Request) {
   try {
@@ -35,7 +47,7 @@ export async function GET() {
 }
 
 // Simple severity calculation based on type and description
-function calculateSeverity(data: any) {
+function calculateSeverity(data: Pick<Incident, 'type' | 'description'>) {
   const emergencyKeywords = ['critical', 'severe', 'urgent', 'life-threatening', 'dangerous'];
   const hasEmergencyKeywords = emergencyKeywords.some(keyword => 
     data.description?.toLowerCase().includes(keyword)
