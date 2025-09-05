@@ -1,3 +1,4 @@
+@import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -116,7 +117,19 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
+  html, body {
+    @apply h-full w-full m-0 p-0;
+  html, body {
+    border: none !important;
+    background-clip: border-box !important;
+    box-shadow: none !important;
   }
+  }
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to bottom right, #14532d, #16a34a); /* dark green → light green */
 }
