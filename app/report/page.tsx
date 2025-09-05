@@ -23,6 +23,11 @@ export default function ReportIncidentPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [assessment, setAssessment] = useState<{
+    priority: "High" | "Medium" | "Low";
+    severity?: "Critical" | "Medium" | "Low";
+    reasoning?: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { latitude, longitude, error: locationError } = useGeolocation();
@@ -53,30 +58,39 @@ export default function ReportIncidentPage() {
     setLoading(true);
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("type", formData.type);
-      formDataToSend.append("location", formData.location);
-      formDataToSend.append("description", formData.description);
-      if (formData.media) {
-        formDataToSend.append("media", formData.media);
-      }
+      // Force JSON payload; we won't send the file for now
+      const payload = {
+        type: formData.type,
+        location: formData.location,
+        description: formData.description,
+      };
 
       const response = await fetch("/api/incidents", {
         method: "POST",
-        body: formDataToSend,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
+      const result = await response.json().catch(() => null);
+
       if (!response.ok) {
-        throw new Error("Failed to submit report");
+        const msg = result?.message || "Failed to submit report";
+        throw new Error(msg);
+      }
+
+      // Show assessment immediately under submit
+      if (result?.incident) {
+        setAssessment({
+          priority: result.incident.priority,
+          severity: result.incident.severity,
+          reasoning: result.incident.reasoning,
+        });
       }
 
       setSubmitted(true);
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
+      setTimeout(() => router.push("/dashboard"), 1800);
     } catch (error) {
       console.error("Error submitting report:", error);
-      // You could set an error state here and display it to the user
     } finally {
       setLoading(false);
     }
@@ -279,6 +293,13 @@ export default function ReportIncidentPage() {
                 <Button type="submit" disabled={loading}>
                   {loading ? "Submitting..." : "Submit Incident"}
                 </Button>
+                {assessment && (
+                  <div className="mt-3 p-3 rounded" style={{ background: '#E8FFD7', color: '#3E5F44' }}>
+                    <div style={{ fontWeight: 700 }}>AI Priority: <span style={{ color: assessment.priority === 'High' ? '#B91C1C' : assessment.priority === 'Medium' ? '#B45309' : '#166534' }}>{assessment.priority}</span></div>
+                    {assessment.severity && <div>Severity: <strong>{assessment.severity}</strong></div>}
+                    {assessment.reasoning && <div style={{ marginTop: 6, fontSize: 13 }}>{assessment.reasoning}</div>}
+                  </div>
+                )}
               </form>
             )}
           </CardContent>

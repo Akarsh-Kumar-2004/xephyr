@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const mockIncidents = [
   {
@@ -32,7 +32,30 @@ const mockIncidents = [
 ];
 
 export default function CitizenDashboard() {
-  const [incidents] = useState(mockIncidents);
+  const [incidents, setIncidents] = useState<any[]>(mockIncidents);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/incidents');
+        if (!res.ok) throw new Error(`Failed to load incidents (${res.status})`);
+        const json = await res.json();
+        if (mounted) setIncidents(json.incidents ?? []);
+      } catch (err: any) {
+        console.error('Error loading incidents:', err);
+        if (mounted) setError(err?.message || 'Failed to load incidents');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   // Helper to get badge color classes based on status
   const getStatusBadgeClass = (status: string) => {
@@ -194,7 +217,11 @@ export default function CitizenDashboard() {
       <main className="animate-fade-in">
         <h2 className="animate-fade-in-up">My Reported Incidents</h2>
         <div className="container">
-          {incidents.length === 0 ? (
+          {loading ? (
+            <div className="no-incidents animate-fade-in-up">Loading incidents…</div>
+          ) : error ? (
+            <div className="no-incidents animate-fade-in-up">Error: {error}</div>
+          ) : incidents.length === 0 ? (
             <div className="no-incidents animate-fade-in-up">
               No incidents reported yet.
             </div>

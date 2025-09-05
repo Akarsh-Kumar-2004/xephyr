@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { getGeminiClient, assessIncidentPriority } from "@/lib/utils/gemini";
 
 interface Incident {
-  id: number;
+  id: string;
   type: string;
   location: string;
   description: string;
-  media?: string;
   createdAt: string;
-  status: 'Pending' | 'In Progress' | 'Resolved';
-  severity: 'Critical' | 'Medium' | 'Low';
-  responder: string | null;
+  status: "Pending" | "In Progress" | "Resolved";
+  severity: "Critical" | "Medium" | "Low";
+  priority: "High" | "Medium" | "Low";
+  reasoning?: string;
 }
 
 // Mock database
@@ -17,46 +18,50 @@ const incidents: Incident[] = [];
 
 export async function POST(req: Request) {
   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("Server not configured: GEMINI_API_KEY missing.");
+    }
+
     const data = await req.json();
-    
-    // Add metadata
-    const incident = {
-      id: Date.now(),
-      ...data,
+    const { type, location, description } = data;
+
+    if (!type || !location) {
+      return NextResponse.json(
+        { message: "Missing required fields: type and location" },
+        { status: 400 }
+      );
+    }
+
+  // Create new client per request
+  const gemini = getGeminiClient(apiKey);
+  // Pass both type and description so LLM can use description for assessment
+  const assessment = await assessIncidentPriority(gemini, type, description);
+
+    const incident: Incident = {
+      id: Date.now().toString(),
+      type,
+      location,
+      description: description || "",
       createdAt: new Date().toISOString(),
-      status: 'Pending',
-      severity: calculateSeverity(data),
-      responder: null,
+      status: "Pending",
+      severity: assessment.severity,
+      priority: assessment.priority,
+      reasoning: assessment.reasoning,
     };
 
-    // Store in our mock database
     incidents.push(incident);
 
-    return NextResponse.json({ success: true, incident });
+    return NextResponse.json({ success: true, incident }, { status: 201 });
   } catch (err) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to create incident' },
-      { status: 500 }
-    );
+    console.error("Error creating incident:", err);
+    const message = err instanceof Error ? err.message : "Failed to create incident";
+    return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
 
 export async function GET() {
-  // Return all incidents
   return NextResponse.json({ incidents });
 }
 
-// Simple severity calculation based on type and description
-function calculateSeverity(data: Pick<Incident, 'type' | 'description'>) {
-  const emergencyKeywords = ['critical', 'severe', 'urgent', 'life-threatening', 'dangerous'];
-  const hasEmergencyKeywords = emergencyKeywords.some(keyword => 
-    data.description?.toLowerCase().includes(keyword)
-  );
 
-  if (data.type === 'medical' || hasEmergencyKeywords) {
-    return 'Critical';
-  } else if (data.type === 'flood' || data.type === 'fire') {
-    return 'Medium';
-  }
-  return 'Low';
-}
